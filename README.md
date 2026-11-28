@@ -9,7 +9,7 @@ GR00T runs natively on the Thor, outside the ROS container (`setup_thor.sh`).
 | `setup_thor.sh` | GR00T N1.7 install on the JetPack 7.1 Thor |
 | `ur16e/ur16e_config.py` | Modality config: wrist camera; state arm, rail, gripper; action arm (relative) and gripper (absolute), 16-step chunks |
 | `scripts/make_training_set.py` | Training set from the recorder's dataset: successful episodes, spread over screws, with a held-out set |
-| `scripts/smoke_finetune.sh` | Short fine-tune plus open-loop evaluation; measures step time and memory |
+| `scripts/finetune.sh` | Fine-tune (smoke or overnight), then open-loop evaluation of every checkpoint; logs step time and memory |
 
 ## Steps (on the Thor)
 
@@ -27,11 +27,13 @@ for d in ~/groot_data/screw_pick_n25 ~/groot_data/screw_pick_n25_holdout; do
       --modality-config-path $R/ur16e/ur16e_config.py
 done
 
-# 3. Smoke fine-tune, with the robot idle (it refuses while collect_picks runs)
-$R/scripts/smoke_finetune.sh ~/groot_data/screw_pick_n25 200 32
+# 3. Fine-tune, with the robot idle (it refuses while collect_picks runs)
+$R/scripts/finetune.sh ~/groot_data/screw_pick_n25 200            # smoke, ~10 min
+$R/scripts/finetune.sh ~/groot_data/screw_pick_n25 10000 32 2000  # overnight, ~8 h, ~120 GB
 ```
 
-Results land in `~/groot_runs/smoke_<set>_<time>/`: `train.log`, `summary.txt` (step time),
-`tegrastats.log` (memory), and `open_loop_{train,holdout}.png`. The pipeline is right when the
+Results land in `~/groot_runs/<set>_<steps>steps_<time>/`: `summary.txt` (step time and the
+open-loop MAE of every checkpoint), `train.log`, `tegrastats.log` (memory), and
+`open_loop_{train,holdout}_<step>.png`. The pipeline is right when the
 predicted actions track the recorded ones on the training episode; the held-out one shows how
 far that carries.
